@@ -1,3 +1,4 @@
+from tokenize import Double
 import numpy as np
 import pandas as pd
 import math 
@@ -263,7 +264,7 @@ def generate_buy_decision(stock_df: pd.DataFrame, trade_signal_col_name: str, ve
     return series 
 
 
-def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decision_col: str, initial_cash: int, verbose=True):
+def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decision_col: str, initial_cash: int, verbose=True, commission_percent: Double=0):
     '''
     Make trading decisions, calculate profit and loss for a long only fund 
     Args:
@@ -275,6 +276,11 @@ def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decis
         stock_df(pd.Dataframe): Dataframe with new profit and loss columns added
 
     '''
+
+
+    # TODO: Be able to trade fractional shares - use ALL available funds minus commission to purchase crypto
+    # TODO: Add commission calculation (parameter- commission percent e.g. .2%) to every trade - need to calculate to determine available cash for crypto
+
     if verbose: print('\nMaking trading decisions...calculating profit and loss...')
     initial_close_price = stock_df[close_col].loc[0]
     shares = math.floor(initial_cash / initial_close_price)
@@ -291,7 +297,7 @@ def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decis
         todays_close_price = stock_df[close_col].loc[i]
         if (current_decision == 'buy'): 
             if i == 0:
-                shares_to_buy = math.floor(leftover_cash / todays_close_price)
+                shares_to_buy = (leftover_cash * (1-commission_percent)) / todays_close_price
                 shares = shares + shares_to_buy
                 leftover_cash = leftover_cash - (shares_to_buy * todays_close_price)
                 stock_df['shares_owned'].loc[i] = shares
@@ -299,7 +305,7 @@ def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decis
                 stock_df['remaining_cash'].loc[i] = leftover_cash
                 stock_df['total_portfolio_value'].loc[i] = (shares * todays_close_price) + leftover_cash          
             else: 
-                shares_to_buy = math.floor(stock_df['remaining_cash'].loc[i-1] / todays_close_price)
+                shares_to_buy =( stock_df['remaining_cash'].loc[i-1] * (1-commission_percent))/ todays_close_price
                 shares = stock_df['shares_owned'].loc[i-1] + shares_to_buy
                 stock_df['shares_owned'].loc[i] = shares
                 stock_df['total_value_of_shares'].loc[i] = shares * todays_close_price
@@ -440,12 +446,14 @@ def view_stock_with_decision(stock_df: pd.DataFrame, ticker: str, close_col: str
 
 # earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
 
-# final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True)
+# final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True, commission_percent=.0020)
 
 # view_portfolio_df(stock_df= final_stock_df, total_portfolio_value_col= 'total_portfolio_value')
 
 # view_stock_with_decision(stock_df= earnings_df, ticker= ticker, close_col= 'Close', buy_decision_col= 'buy_decision')
 
+# asset_list = ['BTC-USD', 'ETH-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD', 'DOT-USD', 'SHIB-USD',\
+#     'MATIC-USD', 'AVAX-USD', 'TRX-USD', 'UNI1-USD', 'LTC-USD', 'CRO-USD', 'ATOM-USD', 'XMR-USD', 'XLM-USD']
 
 
 
@@ -510,7 +518,7 @@ for sma_window_counter in range(0, len(sma_window_list)):
 
                 earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
 
-                final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True)
+                final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True, commission_percent=.0020)
 
 
                 starting_asset_value = final_stock_df['Close'].loc[0]
@@ -533,6 +541,12 @@ for sma_window_counter in range(0, len(sma_window_list)):
                 print('\nFinished round ' + str(iterator) + ' of ' + str(total_iterations))
 
 tuning_df.to_csv('tuning_df.csv')
+
+# Bonus TODO: Build out separate profit/loss calculator for normal securities vs. crypto,
+#             since fractional shares for securities are not available 
+
+
+# Longterm TODO: Identify way to calculate value of being short a stock after selling. 
 
 
 '''
