@@ -518,7 +518,7 @@ for sma_window_counter in range(0, len(sma_window_list)):
 
                 earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
 
-                final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True)
+                final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True, commission_percent=.0020)
 
 
                 starting_asset_value = final_stock_df['Close'].loc[0]
