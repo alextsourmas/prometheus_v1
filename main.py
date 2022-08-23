@@ -305,7 +305,7 @@ def calculate_profit_and_loss(stock_df: pd.DataFrame,  close_col: str, buy_decis
                 stock_df['remaining_cash'].loc[i] = leftover_cash
                 stock_df['total_portfolio_value'].loc[i] = (shares * todays_close_price) + leftover_cash          
             else: 
-                shares_to_buy =( stock_df['remaining_cash'].loc[i-1] * (1-commission_percentg))/ todays_close_price
+                shares_to_buy =( stock_df['remaining_cash'].loc[i-1] * (1-commission_percent))/ todays_close_price
                 shares = stock_df['shares_owned'].loc[i-1] + shares_to_buy
                 stock_df['shares_owned'].loc[i] = shares
                 stock_df['total_value_of_shares'].loc[i] = shares * todays_close_price
@@ -420,38 +420,127 @@ def view_stock_with_decision(stock_df: pd.DataFrame, ticker: str, close_col: str
 #     'MATIC-USD', 'AVAX-USD', 'TRX-USD', 'UNI1-USD', 'LTC-USD', 'CRO-USD', 'ATOM-USD', 'XMR-USD', 'XLM-USD']
 
 
-ticker ='BTC-USD'
-print('\n' + ticker)
-historical_data_df = get_stock_data(stock = ticker, period='5Y', verbose= False)
-# historical_data_df = get_stock_data(stock = current_ticker, period='10Y', verbose= False)
+# ticker ='BTC-USD'
+# print('\n' + ticker)
+# historical_data_df = get_stock_data(stock = ticker, period='5Y', verbose= False)
+# # historical_data_df = get_stock_data(stock = current_ticker, period='10Y', verbose= False)
 
-historical_data_df['sma_15'] = simple_moving_average(stock_df = historical_data_df, close_col='Close',\
-    window=15, fillna=True, verbose=False)
+# historical_data_df['sma_15'] = simple_moving_average(stock_df = historical_data_df, close_col='Close',\
+#     window=15, fillna=True, verbose=False)
 
-historical_data_df['trend_analysis'] = trend_analysis(stock_df= historical_data_df, window= 5, sma_col= 'sma_15',\
-    close_col= 'Close', verbose=False)
+# historical_data_df['trend_analysis'] = trend_analysis(stock_df= historical_data_df, window= 5, sma_col= 'sma_15',\
+#     close_col= 'Close', verbose=False)
 
-historical_data_df['quantified_trend'] = get_quantified_trend(stock_df= historical_data_df, close_col= 'Close',\
-    trend_analysis_col= 'trend_analysis', window=3, verbose=False)
+# historical_data_df['quantified_trend'] = get_quantified_trend(stock_df= historical_data_df, close_col= 'Close',\
+#     trend_analysis_col= 'trend_analysis', window=3, verbose=False)
 
-# print('\nCreating technical features...')
-historical_data_df = ta.add_all_ta_features(historical_data_df, open="Open", high="High", low="Low",\
-        close = "Close", volume="Volume", fillna=True)
+# # print('\nCreating technical features...')
+# historical_data_df = ta.add_all_ta_features(historical_data_df, open="Open", high="High", low="Low",\
+#         close = "Close", volume="Volume", fillna=True)
 
-test_df = train_xgb(stock_df = historical_data_df, train_set_percent= 0.7, random_state = 1, verbose=True)
+# test_df = train_xgb(stock_df = historical_data_df, train_set_percent= 0.7, random_state = 1, verbose=True)
 
-test_df['trade_signal'] = generate_trade_signal(stock_df = test_df, quantified_trend_col = 'predictions', strategy= 'quantile', quantile_value= 0.80, verbose=False)
+# test_df['trade_signal'] = generate_trade_signal(stock_df = test_df, quantified_trend_col = 'predictions', strategy= 'quantile', quantile_value= 0.80, verbose=False)
 
-test_df['buy_decision'] = generate_buy_decision(stock_df = test_df, trade_signal_col_name= 'trade_signal', verbose=False)
+# test_df['buy_decision'] = generate_buy_decision(stock_df = test_df, trade_signal_col_name= 'trade_signal', verbose=False)
 
-earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
+# earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
 
-final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True, commission_percent=.0020)
+# final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True, commission_percent=.0020)
 
-view_portfolio_df(stock_df= final_stock_df, total_portfolio_value_col= 'total_portfolio_value')
+# view_portfolio_df(stock_df= final_stock_df, total_portfolio_value_col= 'total_portfolio_value')
 
-view_stock_with_decision(stock_df= earnings_df, ticker= ticker, close_col= 'Close', buy_decision_col= 'buy_decision')
+# view_stock_with_decision(stock_df= earnings_df, ticker= ticker, close_col= 'Close', buy_decision_col= 'buy_decision')
 
+# asset_list = ['BTC-USD', 'ETH-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'SOL-USD', 'DOGE-USD', 'DOT-USD', 'SHIB-USD',\
+#     'MATIC-USD', 'AVAX-USD', 'TRX-USD', 'UNI1-USD', 'LTC-USD', 'CRO-USD', 'ATOM-USD', 'XMR-USD', 'XLM-USD']
+
+
+
+
+tuning_df = pd.DataFrame(columns=['ticker', 'sma_window', 'trend_analysis_window', 'quantified_trend_window', 'quantile', 'starting_asset_value',\
+    'ending_asset_value', 'baseline_p_and_l', 'starting_portfolio_value', 'ending_portfolio_value', 'strategy_p_and_l', 'alpha'])
+
+sma_window_list = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42]
+trend_analysis_window_list = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42]
+quantified_trend_window_list = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42]
+quantile_value_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+
+iterator = 0
+total_iterations = len(sma_window_list) * len(trend_analysis_window_list) * len(quantified_trend_window_list) * len(quantile_value_list)
+
+
+# sma_window_list = [12, 15]
+# trend_analysis_window_list = [12, 15]
+# quantified_trend_window_list = [12, 15]
+# quantile_value_list = [0.65, 0.75]
+
+
+for sma_window_counter in range(0, len(sma_window_list)): 
+
+    sma_window = sma_window_list[sma_window_counter]
+
+    for trend_analysis_window_counter in range(0, len(trend_analysis_window_list)): 
+
+        trend_analysis_window = trend_analysis_window_list[trend_analysis_window_counter]
+
+        for quantified_trend_counter in range(0, len(quantified_trend_window_list)): 
+
+            quantified_trend_window = quantified_trend_window_list[quantified_trend_counter]
+
+            for quantile_counter in range(0, len(quantile_value_list)): 
+
+                quantile = quantile_value_list[quantile_counter]
+                
+                ticker ='BTC-USD'
+                print('\n' + ticker)
+                historical_data_df = get_stock_data(stock = ticker, period='5Y', verbose= False)
+                # historical_data_df = get_stock_data(stock = current_ticker, period='10Y', verbose= False)
+
+                historical_data_df['sma_15'] = simple_moving_average(stock_df = historical_data_df, close_col='Close',\
+                    window=sma_window, fillna=True, verbose=False)
+
+                historical_data_df['trend_analysis'] = trend_analysis(stock_df= historical_data_df, window= trend_analysis_window, sma_col= 'sma_15',\
+                    close_col= 'Close', verbose=False)
+
+                historical_data_df['quantified_trend'] = get_quantified_trend(stock_df= historical_data_df, close_col= 'Close',\
+                    trend_analysis_col= 'trend_analysis', window=quantified_trend_window, verbose=False)
+
+                # print('\nCreating technical features...')
+                historical_data_df = ta.add_all_ta_features(historical_data_df, open="Open", high="High", low="Low",\
+                        close = "Close", volume="Volume", fillna=True)
+
+                test_df = train_xgb(stock_df = historical_data_df, train_set_percent= 0.7, random_state = 1, verbose=True)
+
+                test_df['trade_signal'] = generate_trade_signal(stock_df = test_df, quantified_trend_col = 'predictions', strategy= 'quantile', quantile_value= quantile, verbose=False)
+
+                test_df['buy_decision'] = generate_buy_decision(stock_df = test_df, trade_signal_col_name= 'trade_signal', verbose=False)
+
+                earnings_df = test_df[['Date', 'Close', 'quantified_trend', 'predictions', 'trade_signal', 'buy_decision']]
+
+                final_stock_df = calculate_profit_and_loss(stock_df= earnings_df,  close_col= 'Close', buy_decision_col= 'buy_decision', initial_cash=100000, verbose=True)
+
+
+                starting_asset_value = final_stock_df['Close'].loc[0]
+                ending_asset_value = final_stock_df['Close'].loc[len(final_stock_df) - 1]
+                baseline_p_and_l =  round(((ending_asset_value - starting_asset_value) / starting_asset_value) * 100, 2)
+                starting_portfolio_value = final_stock_df['total_portfolio_value'].loc[0]
+                ending_portfolio_value = final_stock_df['total_portfolio_value'].loc[len(final_stock_df) - 1]
+                strategy_p_and_l = round(((ending_portfolio_value - starting_portfolio_value) / starting_portfolio_value) * 100, 2)
+                alpha = round(strategy_p_and_l - baseline_p_and_l, 2)
+
+                temp_df = {'ticker': ticker, 'sma_window': sma_window, 'trend_analysis_window': trend_analysis_window, 'quantified_trend_window': quantified_trend_window,\
+                    'quantile': quantile, 'starting_asset_value': starting_asset_value, 'ending_asset_value': ending_asset_value, 'baseline_p_and_l': baseline_p_and_l,\
+                        'starting_portfolio_value': starting_portfolio_value, 'ending_portfolio_value': ending_portfolio_value, 'strategy_p_and_l': strategy_p_and_l,\
+                            'alpha': alpha}
+                
+                tuning_df = tuning_df.append(temp_df, ignore_index=True)
+                print(tuning_df)
+
+                iterator = iterator + 1
+                print('\nFinished round ' + str(iterator) + ' of ' + str(total_iterations))
+
+tuning_df.to_csv('tuning_df.csv')
 
 # Bonus TODO: Build out separate profit/loss calculator for normal securities vs. crypto,
 #             since fractional shares for securities are not available 
