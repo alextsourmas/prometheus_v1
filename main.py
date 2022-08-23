@@ -535,6 +535,8 @@ for sma_window_counter in range(0, len(sma_window_list)):
 tuning_df.to_csv('tuning_df.csv')
 
 
+
+
 '''
 TO DO: 
 - Add new trading algo with fractional shares and commission
